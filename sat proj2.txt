@@ -1,0 +1,62 @@
+from PIL import Image
+
+def encode_message(image_path, message):
+    # Open the image
+    img = Image.open(image_path)
+    
+    # Convert the message to binary
+    binary_message = ''.join(format(ord(char), '08b') for char in message)
+    
+    # Check if the message can fit in the image
+    if len(binary_message) > img.width * img.height:
+        raise ValueError("Message is too long to fit in the image.")
+    
+    # Encode the message in the image
+    pixels = img.load()
+    index = 0
+    for i in range(img.width):
+        for j in range(img.height):
+            r, g, b = pixels[i, j]
+            if index < len(binary_message):
+                # Modify the least significant bit of each color channel
+                r = (r & 0xFE) | int(binary_message[index])
+                index += 1
+            pixels[i, j] = (r, g, b)
+    
+    # Save the modified image
+    encoded_image_path = "encoded_image.png"
+    img.save(encoded_image_path)
+    
+    return encoded_image_path
+
+def decode_message(image_path):
+    # Open the image
+    img = Image.open(image_path)
+    
+    # Extract the message from the image
+    binary_message = ""
+    pixels = img.load()
+    for i in range(img.width):
+        for j in range(img.height):
+            r, _, _ = pixels[i, j]
+            binary_message += str(r & 1)
+    
+    # Convert the binary message to text
+    message = ""
+    for i in range(0, len(binary_message), 8):
+        byte = binary_message[i:i+8]
+        message += chr(int(byte, 2))
+    
+    return message
+
+# Example usage
+image_path = "satellite_image.png"
+message = "This is a hidden message!"
+
+# Encode the message in the image
+encoded_image_path = encode_message(image_path, message)
+print("Message encoded successfully. Encoded image saved as", encoded_image_path)
+
+# Decode the message from the image
+decoded_message = decode_message(encoded_image_path)
+print("Decoded message:", decoded_message)
